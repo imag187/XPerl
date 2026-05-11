@@ -83,6 +83,24 @@ local function XPerl_SlashHandler(msg)
 			end
 		end
 
+	elseif (args[1] == "tracepower") then
+		if (args[2] == "on") then
+			XPerl_TogglePowerTrace(true)
+		elseif (args[2] == "off") then
+			XPerl_TogglePowerTrace(false)
+		else
+			XPerl_TogglePowerTrace()
+		end
+
+	elseif (args[1] == "frame") then
+		XPerl_DumpMouseFocus()
+
+	elseif (args[1] == "mousefocus") then
+		XPerl_DumpMouseFocus()
+
+	elseif (args[1] == "class") then
+		XPerl_DumpClassInfo(args[2])
+
 
 	else
 		DEFAULT_CHAT_FRAME:AddMessage(XPERL_CMD_HELP)

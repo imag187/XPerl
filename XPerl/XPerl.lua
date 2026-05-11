@@ -3,10 +3,552 @@
 -- License: GNU GPL v3, 29 June 2007 (see LICENSE.txt)
 
 local conf
+local XPerlCustomClassFallbacks = {
+	BARBARIAN = "WARRIOR",
+	WITCHDOCTOR = "SHAMAN",
+	DEMONHUNTER = "ROGUE",
+	WITCHHUNTER = "HUNTER",
+	STORMBRINGER = "SHAMAN",
+	FLESHWARDEN = "DEATHKNIGHT",
+	GUARDIAN = "WARRIOR",
+	MONK = "ROGUE",
+	SONOFARUGAL = "DRUID",
+	RANGER = "HUNTER",
+	CHRONOMANCER = "MAGE",
+	NECROMANCER = "WARLOCK",
+	PYROMANCER = "MAGE",
+	CULTIST = "WARLOCK",
+	STARCALLER = "DRUID",
+	SUNCLERIC = "PRIEST",
+	TINKER = "HUNTER",
+	PROPHET = "PRIEST",
+	REAPER = "WARLOCK",
+	TEMPLAR = "PALADIN",
+	WILDWALKER = "DRUID",
+	SPIRITMAGE = "SHAMAN",
+	RUNEMASTER = "MAGE",
+}
+
+local XPerlSecondaryPowerInfo = {
+	[0] = {token = "MANA", colour = "mana"},
+	[1] = {token = "RAGE", colour = "rage"},
+	[2] = {token = "FOCUS", colour = "focus"},
+	[3] = {token = "ENERGY", colour = "energy"},
+	[6] = {token = "RUNIC_POWER", colour = "runic_power"},
+}
+
+local XPerlClassSecondaryPowerPriority = {
+	STARCALLER = {3},
+	WITCHHUNTER = {1},
+	WILDWALKER = {1},
+	RANGER = {},
+	FLESHWARDEN = {},
+	NECROMANCER = {},
+	REAPER = {},
+}
+
+local XPerlClassAuraResourceDefinitions = {
+	TEMPLAR = {
+		display = "badge",
+		max = 1,
+		showWhenEmpty = false,
+		token = "OATH_CHAIN",
+		colour = "mana",
+		fillColour = {r = 0.95, g = 0.76, b = 0.24},
+		pendingColour = {r = 1, g = 0.85, b = 0.35},
+		badgeTextMode = "count",
+		badgeLabel = "OATH CHAIN",
+		badgeHurryText = "HURRY UP!",
+		badgeCountdown = true,
+		badgeHurryThreshold = 3,
+		badgeModifierMode = "percent",
+		badgeModifierPerStack = 10,
+		auras = {
+			{spellIDs = {704576}, filter = "HELPFUL", setValue = 1},
+		},
+		modifierAuras = {
+			{spellIDs = {804904}, filter = "HELPFUL", useCount = true},
+		},
+		detectAuras = {
+			{spellIDs = {704576, 804904}, filter = "HELPFUL"},
+		},
+	},
+	FLESHWARDEN = {
+		display = "pips",
+		max = 6,
+		showWhenEmpty = true,
+		segments = 1,
+		token = "DEMONFIRE",
+		colour = "rage",
+		fillColour = {r = 1, g = 0.42, b = 0.08},
+		pendingColour = {r = 1, g = 0.62, b = 0.18},
+		auras = {
+			{spellID = 500906, filter = "HELPFUL", useCount = true},
+		},
+	},
+	NECROMANCER = {
+		display = "badge",
+		showWhenEmpty = false,
+		token = "LIFE FORCE",
+		colour = "runic_power",
+		fillColour = {r = 0.32, g = 0.82, b = 0.36},
+		pendingColour = {r = 0.58, g = 0.96, b = 0.6},
+		badgeTextMode = "count",
+		badgeLabel = "LIFE FORCE",
+		auras = {
+			{spellID = 525004, filter = "HARMFUL", useCount = true},
+		},
+		detectAuras = {
+			{spellID = 525004, filter = "HARMFUL"},
+		},
+	},
+	DEMONHUNTER = {
+		display = "pips",
+		max = 6,
+		showWhenEmpty = true,
+		segments = 1,
+		token = "FELFURY",
+		colour = "energy",
+		fillColour = {r = 0.34, g = 0.92, b = 0.46},
+		pendingColour = {r = 0.68, g = 1, b = 0.52},
+		auras = {
+			{spellID = 800058, filter = "HELPFUL", useCount = true},
+		},
+		detectAuras = {
+			{spellID = 800058, filter = "HELPFUL"},
+		},
+	},
+	REAPER = {
+		display = "pips",
+		max = 3,
+		showWhenEmpty = true,
+		segments = 3,
+		infusionSpellID = 803031,
+		token = "SOULS",
+		colour = "runic_power",
+		fillColour = {r = 0.3, g = 0.8, b = 1},
+		pendingColour = {r = 0.55, g = 0.9, b = 1},
+		auras = {
+			{spellID = 500363, filter = "HELPFUL", useCount = true},
+			{spellID = 805077, filter = "HELPFUL", useCount = true, divideBy = 3},
+			{spellID = 803031, filter = "HELPFUL", setValue = 3},
+		},
+	},
+	PYROMANCER = {
+		display = "pips",
+		max = 5,
+		showWhenEmpty = true,
+		segments = 1,
+		token = "EMBERS",
+		colour = "rage",
+		fillColour = {r = 1, g = 0.46, b = 0.12},
+		pendingColour = {r = 1, g = 0.68, b = 0.24},
+		barMax = 100,
+		barShowWhenEmpty = true,
+		barToken = "HEAT",
+		barColour = {r = 1, g = 0.34, b = 0.08},
+		barAuras = {
+			{spellIDs = {807389, 807309}, filters = {"HARMFUL", "HELPFUL"}, useCount = true},
+		},
+		auras = {
+			{spellID = 807533, filters = {"HARMFUL", "HELPFUL"}, useCount = true},
+		},
+	},
+	SUNCLERIC = {
+		barMax = 20,
+		barShowWhenEmpty = true,
+		barToken = "SOLAR POWER",
+		barColour = {r = 0.98, g = 0.86, b = 0.24},
+		barAuras = {
+			{spellID = 500149, filter = "HELPFUL", useCount = true},
+		},
+		detectAuras = {
+			{spellID = 500149, filter = "HELPFUL"},
+		},
+	},
+	CULTIST = {
+		barMax = 100,
+		barShowWhenEmpty = true,
+		barToken = "INSANITY",
+		barColour = {r = 0.72, g = 0.34, b = 0.92},
+		barAuras = {
+			{spellID = 500706, filter = "HARMFUL", useCount = true},
+		},
+		detectAuras = {
+			{spellID = 500706, filter = "HARMFUL"},
+		},
+	},
+	STORMBRINGER = {
+		barMax = 100,
+		barShowWhenEmpty = true,
+		barToken = "STATIC",
+		barColour = {r = 0.5, g = 0.78, b = 1},
+		barAuras = {
+			{spellID = 803102, filter = "HARMFUL", useCount = true},
+		},
+		detectAuras = {
+			{spellID = 803102, filter = "HARMFUL"},
+		},
+	},
+	RANGER = {
+		display = "pips",
+		max = 5,
+		showWhenEmpty = true,
+		segments = 1,
+		token = "ADVANTAGE",
+		colour = "focus",
+		fillColour = {r = 0.22, g = 0.68, b = 0.32},
+		pendingColour = {r = 0.88, g = 0.74, b = 0.24},
+		auras = {
+			{spellID = 804329, filters = {"HARMFUL", "HELPFUL"}, useCount = true},
+		},
+		detectAuras = {
+			{spellID = 804329, filters = {"HARMFUL", "HELPFUL"}},
+		},
+	},
+}
+
+local function XPerl_GetResolvedClass(class, classTable)
+	class = strupper(class or "")
+	if (not classTable or classTable[class]) then
+		return class
+	end
+	return XPerlCustomClassFallbacks[class] or class
+end
+
+function XPerl_GetUnitClassToken(unit, classTable)
+	local localizedClass, englishClass = UnitClass(unit)
+	localizedClass = XPerl_GetResolvedClass(localizedClass, classTable)
+	if (localizedClass and localizedClass ~= "" and ((not classTable) or classTable[localizedClass])) then
+		return localizedClass
+	end
+
+	return XPerl_GetResolvedClass(englishClass, classTable)
+end
+
+function XPerl_GetClassSecondaryPowerPriority(class)
+	class = XPerl_GetResolvedClass(class, XPerlClassSecondaryPowerPriority)
+	return XPerlClassSecondaryPowerPriority[class]
+end
+
+function XPerl_GetClassAuraResourceDefinition(class)
+	class = XPerl_GetResolvedClass(class, XPerlClassAuraResourceDefinitions)
+	return XPerlClassAuraResourceDefinitions[class]
+end
+
+local XPerl_GetAuraResourceSpellName
+local XPerl_FindAuraBySpell
+local XPerl_FindAuraByEntry
+
+local function XPerl_UnitHasAuraDefinition(unit, entries)
+	if (not entries) then
+		return
+	end
+
+	for _, entry in ipairs(entries) do
+		if (XPerl_FindAuraByEntry(unit, entry)) then
+			return true
+		end
+	end
+end
+
+local function XPerl_PlayerHasSpellByID(spellID)
+	local spellName = GetSpellInfo(spellID)
+	if (not spellName) then
+		return
+	end
+
+	for tabIndex = 1, (GetNumSpellTabs() or 0) do
+		local _, _, offset, numSpells = GetSpellTabInfo(tabIndex)
+		for spellIndex = offset + 1, offset + numSpells do
+			local bookName = GetSpellBookItemName(spellIndex, BOOKTYPE_SPELL)
+			if (bookName == spellName) then
+				return true
+			end
+		end
+	end
+end
+
+function XPerl_FindAuraResourceDefinitionByAura(unit)
+	for class, definition in pairs(XPerlClassAuraResourceDefinitions) do
+		if (unit == "player" and definition.detectSpells) then
+			for _, spellID in ipairs(definition.detectSpells) do
+				if (XPerl_PlayerHasSpellByID(spellID)) then
+					return definition, class
+				end
+			end
+		end
+
+		if (XPerl_UnitHasAuraDefinition(unit, definition.detectAuras)) then
+			return definition, class
+		end
+
+		if (XPerl_UnitHasAuraDefinition(unit, definition.auras or definition)) then
+			return definition, class
+		end
+	end
+end
+
+XPerl_GetAuraResourceSpellName = function(entry)
+	if (not entry) then
+		return
+	end
+
+	if (not entry.spellName and entry.spellID) then
+		entry.spellName = GetSpellInfo(entry.spellID)
+	end
+
+	return entry.spellName
+end
+
+XPerl_FindAuraBySpell = function(unit, filter, spellName)
+	if (not spellName) then
+		return
+	end
+
+	for i = 1,40 do
+		local name, rank, icon, count, debuffType, duration, endTime, caster = UnitAura(unit, i, filter)
+		if (not name) then
+			break
+		end
+
+		if (name == spellName) then
+			return name, rank, icon, count, debuffType, duration, endTime, caster
+		end
+	end
+end
+
+XPerl_FindAuraByEntry = function(unit, entry)
+	if (not entry) then
+		return
+	end
+
+	local filters = entry.filters
+	if (not filters) then
+		filters = {entry.filter or "HELPFUL"}
+	end
+
+	if (entry.spellIDs) then
+		if (not entry.spellNames) then
+			entry.spellNames = {}
+			for _, spellID in ipairs(entry.spellIDs) do
+				local spellName = GetSpellInfo(spellID)
+				if (spellName) then
+					tinsert(entry.spellNames, spellName)
+				end
+			end
+		end
+
+		for _, filter in ipairs(filters) do
+			for _, spellName in ipairs(entry.spellNames) do
+				local auraName, rank, icon, count, debuffType, duration, endTime, caster = XPerl_FindAuraBySpell(unit, filter, spellName)
+				if (auraName) then
+					return auraName, rank, icon, count, debuffType, duration, endTime, caster
+				end
+			end
+		end
+
+		return
+	end
+
+	local spellName = XPerl_GetAuraResourceSpellName(entry)
+	if (spellName) then
+		for _, filter in ipairs(filters) do
+			local auraName, rank, icon, count, debuffType, duration, endTime, caster = XPerl_FindAuraBySpell(unit, filter, spellName)
+			if (auraName) then
+				return auraName, rank, icon, count, debuffType, duration, endTime, caster
+			end
+		end
+	end
+end
+
+function XPerl_GetAuraResourceInfo(unit, definitionOverride)
+	local definition = definitionOverride
+	if (not definition) then
+		local class = XPerl_GetUnitClassToken(unit, XPerlClassAuraResourceDefinitions)
+		definition = XPerl_GetClassAuraResourceDefinition(class)
+	end
+	if (not definition) then
+		return
+	end
+
+	local current = 0
+	local maxValue = definition.max
+	local icon
+	local duration
+	local endTime
+
+	for _, entry in ipairs(definition.auras or definition) do
+		local auraName, _, auraIcon, auraCount, _, auraDuration, auraEndTime = XPerl_FindAuraByEntry(unit, entry)
+		if (auraName) then
+			local count = auraCount
+			if (not count or count < 1) then
+				count = 1
+			end
+
+			local value = entry.value or 1
+			if (entry.useCount) then
+				value = count * value
+			end
+			if (entry.divideBy and entry.divideBy > 0) then
+				value = value / entry.divideBy
+			end
+
+			if (entry.setValue) then
+				current = max(current, value)
+			else
+				current = current + value
+			end
+
+			if (not icon) then
+				icon = auraIcon
+			end
+			if (auraDuration and auraDuration > 0 and (not endTime or auraEndTime > endTime)) then
+				duration = auraDuration
+				endTime = auraEndTime
+			end
+		end
+	end
+
+	if ((maxValue or 0) <= 0) then
+		maxValue = current
+	end
+
+	if ((maxValue or 0) <= 0) then
+		return
+	end
+
+	if ((current or 0) <= 0 and not definition.showWhenEmpty) then
+		return
+	end
+
+	if (current > maxValue) then
+		current = maxValue
+	end
+
+	return current, maxValue, definition.token or definition.label, definition.colour, icon, duration, endTime
+end
+
+function XPerl_GetAuraValueInfo(unit, entries)
+	if (not unit or not entries) then
+		return
+	end
+
+	local current = 0
+	local icon
+	local duration
+	local endTime
+
+	for _, entry in ipairs(entries) do
+		local auraName, _, auraIcon, auraCount, _, auraDuration, auraEndTime = XPerl_FindAuraByEntry(unit, entry)
+		if (auraName) then
+			local count = auraCount
+			if (not count or count < 1) then
+				count = 1
+			end
+
+			local value = entry.value or 1
+			if (entry.useCount) then
+				value = count * value
+			end
+			if (entry.divideBy and entry.divideBy > 0) then
+				value = value / entry.divideBy
+			end
+
+			if (entry.setValue) then
+				current = max(current, value)
+			else
+				current = current + value
+			end
+
+			if (not icon) then
+				icon = auraIcon
+			end
+			if (auraDuration and auraDuration > 0 and (not endTime or auraEndTime > endTime)) then
+				duration = auraDuration
+				endTime = auraEndTime
+			end
+		end
+	end
+
+	if (current <= 0) then
+		return
+	end
+
+	return current, icon, duration, endTime
+end
+
+function XPerl_GetAuraBarInfo(unit, definition)
+	if (not unit or not definition or not definition.barAuras) then
+		return
+	end
+
+	local current, icon, duration, endTime = XPerl_GetAuraValueInfo(unit, definition.barAuras)
+	local maxValue = definition.barMax or 0
+
+	if ((not current or current <= 0) and definition.barShowWhenEmpty and (maxValue or 0) > 0) then
+		current = 0
+	end
+
+	if (current == nil) then
+		return
+	end
+
+	if ((maxValue or 0) <= 0) then
+		maxValue = current
+	end
+
+	if ((maxValue or 0) <= 0) then
+		return
+	end
+
+	if (current > maxValue) then
+		current = maxValue
+	end
+
+	return current, maxValue, definition.barToken or definition.token or definition.label, definition.barColour or definition.colour, icon, duration, endTime
+end
+
+function XPerl_UnitHasAuraBySpellID(unit, spellID, filter)
+	if (not spellID) then
+		return
+	end
+
+	local spellName = GetSpellInfo(spellID)
+	if (not spellName) then
+		return
+	end
+
+	return XPerl_FindAuraBySpell(unit, filter or "HELPFUL", spellName)
+end
+
+function XPerl_GetAlternatePowerInfo(unit)
+	local displayedPower = UnitPowerType(unit) or 0
+	local class = XPerl_GetUnitClassToken(unit, XPerlClassSecondaryPowerPriority)
+	local classPriority = XPerl_GetClassSecondaryPowerPriority(class)
+
+	if (classPriority) then
+		for _, powerType in ipairs(classPriority) do
+			if (powerType ~= displayedPower and (UnitPowerMax(unit, powerType) or 0) > 0) then
+				local powerInfo = XPerlSecondaryPowerInfo[powerType]
+				if (powerInfo) then
+					return powerType, powerInfo.token, powerInfo.colour
+				end
+			end
+		end
+
+		return
+	end
+
+	if (displayedPower ~= 0 and (UnitPowerMax(unit, 0) or 0) > 0) then
+		local powerInfo = XPerlSecondaryPowerInfo[0]
+		return 0, powerInfo.token, powerInfo.colour
+	end
+end
+
 XPerl_RequestConfig(function(New) conf = New end, "$Revision: 363 $")
 local percD	= "%d"..PERCENT_SYMBOL
 local perc1F = "%.1f"..PERCENT_SYMBOL
-
 -- Some local copies for speed
 local strsub = strsub
 local format = format
@@ -29,7 +571,18 @@ local UnitIsPVP = UnitIsPVP
 local UnitIsTapped = UnitIsTapped
 local UnitIsVisible = UnitIsVisible
 local UnitPlayerControlled = UnitPlayerControlled
+local UnitMana = UnitMana
+local UnitManaMax = UnitManaMax
+local UnitPower = UnitPower
+local UnitPowerMax = UnitPowerMax
+local UnitPowerType = UnitPowerType
+local UnitAura = UnitAura
 local UnitReaction = UnitReaction
+local GetSpellInfo = GetSpellInfo
+local GetNumSpellTabs = GetNumSpellTabs
+local GetSpellTabInfo = GetSpellTabInfo
+local GetSpellBookItemName = GetSpellBookItemName
+local GetMouseFocus = GetMouseFocus
 local GetNumRaidMembers = GetNumRaidMembers
 local GetNumPartyMembers = GetNumPartyMembers
 local GetRaidRosterInfo = GetRaidRosterInfo
@@ -98,7 +651,8 @@ end
 -- meta table for string based colours. Allows for other mods changing class colours and things all working
 XPerlColourTable = setmetatable({},{
 	__index = function(self, class)
-		local c = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[strupper(class or "")]
+		local classColours = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
+		local c = classColours[XPerl_GetResolvedClass(class, classColours)]
 		if (c) then
 			c = format("|c00%02X%02X%02X", 255 * c.r, 255 * c.g, 255 * c.b)
 		else
@@ -167,6 +721,298 @@ function XPerl_ShowMessage(cMsg)
 		cf = DEFAULT_CHAT_FRAME
 	end
 	cf:AddMessage(str)
+end
+
+local XPerl_PowerTrace
+local XPerl_PowerTraceWindow
+local XPerl_PowerTraceEnsureWindow
+local XPerl_PowerTraceWrite
+
+local function XPerl_FormatClassSnapshot(unit)
+	if (not unit or not UnitExists(unit)) then
+		return unit.."=<nil>"
+	end
+
+	local name = UnitName(unit) or "?"
+	local localizedClass, englishClass, classIndex = UnitClass(unit)
+	return format(
+		"%s name=%s localized=%s token=%s classIndex=%s",
+		unit,
+		tostring(name),
+		tostring(localizedClass or "?"),
+		tostring(englishClass or "?"),
+		tostring(classIndex or "?")
+	)
+	end
+
+function XPerl_DumpMouseFocus()
+	local focus = GetMouseFocus and GetMouseFocus()
+	if (not focus) then
+		XPerl_PowerTraceWrite("|cFFFF8080XPerl frame|r no mouse focus frame found")
+		return
+	end
+
+	local frame = XPerl_PowerTraceEnsureWindow()
+	frame:Show()
+	XPerl_PowerTraceWrite("|cFF80FF80XPerl frame|r mouse focus frame stack")
+
+	local depth = 1
+	while (focus and depth <= 12) do
+		local name = focus.GetName and focus:GetName() or nil
+		local objectType = focus.GetObjectType and focus:GetObjectType() or "?"
+		local parent = focus.GetParent and focus:GetParent() or nil
+		local parentName = parent and parent.GetName and parent:GetName() or nil
+		local line = format("%d. %s [%s] parent=%s", depth, name or "<unnamed>", objectType, parentName or "<unnamed>")
+		XPerl_PowerTraceWrite(line)
+		focus = parent
+		depth = depth + 1
+	end
+
+	if (focus) then
+		XPerl_PowerTraceWrite("... truncated")
+	end
+end
+
+function XPerl_DumpClassInfo(unit)
+	local frame = XPerl_PowerTraceEnsureWindow()
+	frame:Show()
+
+	if (unit and unit ~= "") then
+		XPerl_PowerTraceWrite("|cFF80FF80XPerl class|r "..XPerl_FormatClassSnapshot(unit))
+		return
+	end
+
+	XPerl_PowerTraceWrite("|cFF80FF80XPerl class|r live class snapshot")
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("player"))
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("target"))
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("focus"))
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("mouseover"))
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("party1"))
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("party2"))
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("party3"))
+	XPerl_PowerTraceWrite(XPerl_FormatClassSnapshot("party4"))
+end
+
+local XPerl_PowerTraceUnits = {
+	player = true,
+	target = true,
+	focus = true,
+	targettarget = true,
+}
+local XPerl_PowerTraceEvents = {
+	"PLAYER_TARGET_CHANGED",
+	"PLAYER_FOCUS_CHANGED",
+	"UNIT_DISPLAYPOWER",
+	"UNIT_MANA",
+	"UNIT_MAXMANA",
+	"UNIT_RAGE",
+	"UNIT_MAXRAGE",
+	"UNIT_ENERGY",
+	"UNIT_MAXENERGY",
+	"UNIT_FOCUS",
+	"UNIT_MAXFOCUS",
+	"UNIT_RUNIC_POWER",
+	"UNIT_MAXRUNIC_POWER",
+	"UNIT_SPELLCAST_START",
+	"UNIT_SPELLCAST_STOP",
+	"UNIT_SPELLCAST_SUCCEEDED",
+	"UNIT_SPELLCAST_INTERRUPTED",
+}
+
+function XPerl_PowerTraceEnsureWindow()
+	if (XPerl_PowerTraceWindow) then
+		return XPerl_PowerTraceWindow
+	end
+
+	local frame = CreateFrame("Frame", "XPerl_PowerTraceWindow", UIParent)
+	frame:SetWidth(720)
+	frame:SetHeight(420)
+	frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+	frame:SetFrameStrata("DIALOG")
+	frame:EnableMouse(true)
+	frame:SetMovable(true)
+	frame:RegisterForDrag("LeftButton")
+	frame:SetScript("OnDragStart", function(self)
+		self:StartMoving()
+	end)
+	frame:SetScript("OnDragStop", function(self)
+		self:StopMovingOrSizing()
+	end)
+	frame:SetBackdrop({
+		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		tile = true,
+		tileSize = 16,
+		edgeSize = 16,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 },
+	})
+	frame:SetBackdropColor(0, 0, 0, 0.9)
+	frame:SetBackdropBorderColor(0.8, 0.8, 0.8, 1)
+
+	local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	title:SetPoint("TOP", frame, "TOP", 0, -10)
+	title:SetText("X-Perl Trace")
+
+	local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+	closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+
+	local clearButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	clearButton:SetWidth(80)
+	clearButton:SetHeight(22)
+	clearButton:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -14, 12)
+	clearButton:SetText("Clear")
+
+	local selectButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	selectButton:SetWidth(90)
+	selectButton:SetHeight(22)
+	selectButton:SetPoint("RIGHT", clearButton, "LEFT", -8, 0)
+	selectButton:SetText("Select All")
+
+	local status = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	status:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 16, 18)
+	status:SetJustifyH("LEFT")
+	status:SetText("/xperl tracepower toggles capture, /xperl frame dumps mouse focus")
+
+	local scroll = CreateFrame("ScrollFrame", "XPerl_PowerTraceScrollFrame", frame, "UIPanelScrollFrameTemplate")
+	scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -32)
+	scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -32, 42)
+
+	local edit = CreateFrame("EditBox", "XPerl_PowerTraceEditBox", scroll)
+	edit:SetMultiLine(true)
+	edit:SetAutoFocus(false)
+	edit:EnableMouse(true)
+	edit:SetFontObject(ChatFontNormal)
+	edit:SetWidth(650)
+	edit:SetScript("OnEscapePressed", function(self)
+		self:ClearFocus()
+	end)
+	edit:SetScript("OnCursorChanged", function(self, x, y, width, height)
+		local scrollY = math.max(0, y)
+		scroll:SetVerticalScroll(scrollY)
+	end)
+	edit:SetScript("OnTextChanged", function(self)
+		if (frame.autoScroll) then
+			scroll:SetVerticalScroll(math.max(0, self:GetHeight() - scroll:GetHeight()))
+		end
+	end)
+	scroll:SetScrollChild(edit)
+
+	clearButton:SetScript("OnClick", function()
+		frame.lines = {}
+		edit:SetText("")
+		status:SetText("Trace cleared")
+	end)
+
+	selectButton:SetScript("OnClick", function()
+		edit:SetFocus()
+		edit:HighlightText(0, string.len(edit:GetText() or ""))
+		status:SetText("Trace selected")
+	end)
+
+	frame.scroll = scroll
+	frame.edit = edit
+	frame.lines = {}
+	frame.autoScroll = true
+	frame.status = status
+	frame:Hide()
+	XPerl_PowerTraceWindow = frame
+	return frame
+end
+
+function XPerl_PowerTraceWrite(text)
+	DEFAULT_CHAT_FRAME:AddMessage(text)
+
+	local frame = XPerl_PowerTraceEnsureWindow()
+	local lines = frame.lines
+	lines[#lines + 1] = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+	if (#lines > 400) then
+		tremove(lines, 1)
+	end
+
+	frame.edit:SetText(table.concat(lines, "\n"))
+	frame.status:SetText("Lines: "..#lines)
+end
+
+local function XPerl_PowerTraceSnapshot(unit)
+	if (not unit or not UnitExists(unit)) then
+		return unit.."=<nil>"
+	end
+
+	local displayedType, displayedToken = UnitPowerType(unit)
+	local mana = UnitMana(unit) or 0
+	local manaMax = UnitManaMax(unit) or 0
+	local rage = UnitPower(unit, 1) or 0
+	local rageMax = UnitPowerMax(unit, 1) or 0
+	local focus = UnitPower(unit, 2) or 0
+	local focusMax = UnitPowerMax(unit, 2) or 0
+	local energy = UnitPower(unit, 3) or 0
+	local energyMax = UnitPowerMax(unit, 3) or 0
+	local runic = UnitPower(unit, 6) or 0
+	local runicMax = UnitPowerMax(unit, 6) or 0
+
+	return format(
+		"%s[%s/%s] mana=%d/%d rage=%d/%d focus=%d/%d energy=%d/%d runic=%d/%d",
+		unit,
+		tostring(displayedType or "?"),
+		tostring(displayedToken or "?"),
+		mana,
+		manaMax,
+		rage,
+		rageMax,
+		focus,
+		focusMax,
+		energy,
+		energyMax,
+		runic,
+		runicMax
+	)
+end
+
+function XPerl_TogglePowerTrace(forceState)
+	if (not XPerl_PowerTrace) then
+		XPerl_PowerTrace = CreateFrame("Frame")
+		XPerl_PowerTrace:SetScript("OnEvent", function(self, event, unit, ...)
+			if (event == "PLAYER_TARGET_CHANGED" or event == "PLAYER_FOCUS_CHANGED") then
+				XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..event)
+				XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("player"))
+				XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("target"))
+				XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("targettarget"))
+				XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("focus"))
+				return
+			end
+
+			if (not unit or not XPerl_PowerTraceUnits[unit]) then
+				return
+			end
+
+			local spellName = select(1, ...)
+			local suffix = spellName and (" spell="..tostring(spellName)) or ""
+			XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..event.." "..XPerl_PowerTraceSnapshot(unit)..suffix)
+		end)
+	end
+
+	local enable = forceState
+	if (enable == nil) then
+		enable = not XPerl_PowerTrace.enabled
+	end
+
+	if (enable) then
+		local frame = XPerl_PowerTraceEnsureWindow()
+		frame:Show()
+		for _, eventName in ipairs(XPerl_PowerTraceEvents) do
+			XPerl_PowerTrace:RegisterEvent(eventName)
+		end
+		XPerl_PowerTrace.enabled = true
+		XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower enabled|r Cast a spell and watch chat or the trace window for power updates.")
+		XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("player"))
+		XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("target"))
+		XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("targettarget"))
+		XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower|r "..XPerl_PowerTraceSnapshot("focus"))
+	else
+		XPerl_PowerTrace:UnregisterAllEvents()
+		XPerl_PowerTrace.enabled = nil
+		XPerl_PowerTraceWrite("|cFF80FF80XPerl tracepower disabled|r")
+	end
 end
 
 XPerl_AnchorList = {"TOP", "LEFT", "BOTTOM", "RIGHT"}
@@ -541,7 +1387,8 @@ end
 -- XPerl_GetClassColour
 local defaultColour = {r = 0.5, g = 0.5, b = 1}
 function XPerl_GetClassColour(class)
-	return (class and (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[class]) or defaultColour
+	local classColours = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
+	return (class and classColours[XPerl_GetResolvedClass(class, classColours)]) or defaultColour
 end
 
 ---------------------------------
@@ -736,29 +1583,34 @@ end
 ---------------------------------
 --Class Icon Location Functions--
 ---------------------------------
---local ClassPos = {
---	WARRIOR	= {0,    0.25,    0,	0.25},
---	MAGE	= {0.25, 0.5,     0,	0.25},
---	ROGUE	= {0.5,  0.75,    0,	0.25},
---	DRUID	= {0.75, 1,       0,	0.25},
---	HUNTER	= {0,    0.25,    0.25,	0.5},
---	SHAMAN	= {0.25, 0.5,     0.25,	0.5},
---	PRIEST	= {0.5,  0.75,    0.25,	0.5},
---	WARLOCK	= {0.75, 1,       0.25,	0.5},
---	PALADIN	= {0,    0.25,    0.5,	0.75},
---	none	= {0.25, 0.5, 0.5, 0.75},
---}
---function XPerl_ClassPos(class)
---	return unpack(ClassPos[class] or ClassPos.none)
---end
+local FallbackClassPos = {
+	WARRIOR = {0, 0.25, 0, 0.25},
+	MAGE = {0.25, 0.5, 0, 0.25},
+	ROGUE = {0.5, 0.75, 0, 0.25},
+	DRUID = {0.75, 1, 0, 0.25},
+	HUNTER = {0, 0.25, 0.25, 0.5},
+	SHAMAN = {0.25, 0.5, 0.25, 0.5},
+	PRIEST = {0.5, 0.75, 0.25, 0.5},
+	WARLOCK = {0.75, 1, 0.25, 0.5},
+	PALADIN = {0, 0.25, 0.5, 0.75},
+	DEATHKNIGHT = {0.25, 0.5, 0.5, 0.75},
+	NONE = {0.25, 0.5, 0.75, 1},
+}
 
-local ClassPos = CLASS_BUTTONS
-function XPerl_ClassPos(class)
-	local b = ClassPos[class]		-- Now using the Blizzard supplied from FrameXML/WorldStateFrame.lua
-	if (b) then
-		return unpack(b)
+local function XPerl_GetClassIconCoords(class)
+	class = strupper(class or "")
+
+	if (CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class]) then
+		return unpack(CLASS_ICON_TCOORDS[class])
 	end
-	return 0.25, 0.5, 0.5, 0.75
+
+	local resolvedClass = XPerl_GetResolvedClass(class, FallbackClassPos)
+	local coords = FallbackClassPos[resolvedClass] or FallbackClassPos.NONE
+	return unpack(coords)
+end
+
+function XPerl_ClassPos(class)
+	return XPerl_GetClassIconCoords(class)
 end
 
 -- XPerl_Toggle
@@ -1191,14 +2043,41 @@ local ManaColours = {
 	[5] = "runes",
 	[6] = "runic_power",
 }
+
+local function XPerl_GetPowerBarColour(powerType, powerToken)
+	if (type(powerToken) == "string") then
+		local tokenKey = strlower(powerToken)
+		local tokenColour = conf.colour.bar[tokenKey]
+		if (tokenColour) then
+			return tokenColour
+		end
+
+		if (PowerBarColor and PowerBarColor[powerToken]) then
+			return PowerBarColor[powerToken]
+		end
+	end
+
+	local colourKey = ManaColours[powerType]
+	if (colourKey) then
+		local colour = conf.colour.bar[colourKey]
+		if (colour) then
+			return colour
+		end
+	end
+
+	if (PowerBarColor and PowerBarColor[powerType]) then
+		return PowerBarColor[powerType]
+	end
+end
+
 function XPerl_SetManaBarType(self)
 	local m = self.statsFrame.manaBar
 	if (m and not self.statsFrame.greyMana) then
 		local unit = self.partyid		-- SecureButton_GetUnit(self)
 		if (unit) then
-			local p = UnitPowerType(unit)
+			local p, powerToken = UnitPowerType(unit)
 			if (p) then
-				local c = conf.colour.bar[ManaColours[p]]
+				local c = XPerl_GetPowerBarColour(p, powerToken)
 				if (c) then
 					m:SetStatusBarColor(c.r, c.g, c.b, 1)
 					m.bg:SetVertexColor(c.r, c.g, c.b, 0.25)

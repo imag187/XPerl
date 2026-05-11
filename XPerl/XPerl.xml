@@ -82,14 +82,14 @@
 	<Frame name="XPerl_LowHealthFrame" parent="UIParent" setAllPoints="true" hidden="true">
 		<Layers>
 			<Layer level="BACKGROUND">
-				<Texture file="Interface\FullScreenTextures\LowHealth" alphaMode="ADD"/>
+				<Texture file="Interface\FullScreenTextures\LowHealth" alphaMode="ADD" setAllPoints="true"/>
 			</Layer>
 		</Layers>
 	</Frame>
 	<Frame name="XPerl_OutOfControlFrame" parent="UIParent" setAllPoints="true" hidden="true">
 		<Layers>
 			<Layer level="BACKGROUND">
-				<Texture file="Interface\FullScreenTextures\OutOfControl" alphaMode="ADD"/>
+				<Texture file="Interface\FullScreenTextures\OutOfControl" alphaMode="ADD" setAllPoints="true"/>
 			</Layer>
 		</Layers>
 	</Frame>
