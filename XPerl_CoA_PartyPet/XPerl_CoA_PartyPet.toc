@@ -1,0 +1,18 @@
+## Interface: 30300
+## Title: X-Perl CoA |cffeda55fParty Pet|r by |cFFFF8080Zek|r
+## Title-ruRU: X-Perl CoA |cffeda55f??????? ??????|r
+## Title-zhCN: X-Perl CoA |cffeda55f?????|r
+## Title-zhTW: X-Perl CoA |cffeda55f????|r ? |cFFFF8080Zek|r ??
+## Notes: Replaces the default party's pet frames.
+## Notes-ruRU: ???????? ??????????? ?????? ???????? ??????.
+## Notes-deDE: Ersetzt die Gruppenbegleiterframes.
+## Notes-zhTW: ????????????.
+## Author: Zek
+## X-License: GNU GPL v3, 29 June 2007
+## RequiredDeps: XPerl_CoA, XPerl_CoA_Party
+## OptionalDeps: XPerl_CoA_ArcaneBar
+## X-Curse-Packaged-Version: 3.0.9
+## X-Curse-Project-Name: X-Perl UnitFrames
+## X-Curse-Project-ID: xperl
+## X-Curse-Repository-ID: wow/xperl/salushyjal-r879fix
+XPerl_Party_Pet.xml
